@@ -5,23 +5,29 @@ import Modal from 'react-bootstrap/Modal';
 import { Col, Row } from 'react-bootstrap';
 import Form from 'react-bootstrap/Form';
 import { ToastError, ToastSuccess } from '../../middleware/ToastModel';
-import { CreateZoom_services, edit_Zoom_services, edit_Zoom_status_services, Get_Zoom_services } from '../../services/Zoom_services';
+import { CreateZoom_services, edit_Zoom_services, edit_Zoom_status_services, Get_Zoom_services, send_Zoom_status_services,get_Zoom_services_single } from '../../services/Zoom_services';
 import moment from 'moment';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Header from '../header/Header';
+import { GetZoom_services_user } from '../../services/Zoom_meeting_user_services';
 function CreateMeeting() {
-
-
   const [id,data]=useSearchParams();
-  console.log(id.get("id"),'id')
   const history=useNavigate();
     const [show, setShow] = useState(false);
-  const handleClose = () => setShow(false);
-  const handleShow = () => setShow(true);
+  const handleClose = () => {setShow(false)
+    history(`/create-meeting`)
+
+  };
+  const handleShow = () => {setShow(true)
+    history(`/create-meeting`)
+  };
   const [meetings,setMeetings]=useState([]);
   const [inviteuser,setInviteUsers]=useState([]);
   const [selectAll,setSelectAll]=useState(false)
   const [statusChange,setStatusChange]=useState(true)
+  const [allusers,setAllusers]=useState([]);
+
+  console.log(inviteuser,'inviteuser')
 
   const [meeting,setMeeting]=useState({
     name:"",
@@ -59,6 +65,12 @@ function CreateMeeting() {
                 ToastSuccess("All User Access")
               handleClose();
               GetMethod();
+              setMeeting({
+                name:"",
+                Duration:"",
+                Users:"",
+                MeetingDate:"",
+              })
               }
           }
       }
@@ -80,9 +92,16 @@ function CreateMeeting() {
               const {data,error}=await CreateZoom_services(datas);
               if(data)
               {
-                ToastSuccess("All User Access")
+                ToastSuccess("Meeting Created")
               handleClose();
               GetMethod();
+              setMeeting({
+                name:"",
+                Duration:"",
+                Users:"",
+                MeetingDate:"",
+              })
+              
               }
           }
       }
@@ -106,55 +125,66 @@ if(data)
       
     }
   }
-
   useEffect(()=>{
     GetMethod();
-  },[selectAll])
+    setMeeting((pre)=>({
+      ...pre,
+      Users:inviteuser?.length
+    })
+     
+    )
+  },[selectAll,inviteuser])
 
   const JoinMeeting=(params,name)=>{
-    history(`/join?roomID=${params}?roomName=${name}`)
+    history(`/confirm-meeting?roomID=${params}?roomName=${name}`)
   }
-
-const mailIds=["kalaimca685@gmail.com","thala@gmail.com","kalairoman70@gmail.com","kalai@cdp360.in"];
-
-
 const handleChangeSelectall=()=>{
   setSelectAll((pre)=>!pre);
+
+  if(inviteuser?.length===allusers?.length)
+  {
+    setInviteUsers([]);
+
+  }
+  else{
     if(!selectAll)
       {
-        setInviteUsers(mailIds);
+        const ids=[]
+        allusers?.map((item,index)=>{
+          ids.push(item?.email);
+        })
+        setInviteUsers(ids);
+
       }
       else{
       setInviteUsers([]);
-      }
-}
 
+      }
+  }
+    
+}
 const handleInviter=(params)=>{
-  if(inviteuser?.includes(params))
+  if(inviteuser?.includes(params?.email))
   {
-    const filerData=inviteuser?.filter((item)=>item!==params);
+    const filerData=inviteuser?.filter((item)=>item!==params?.email);
     setInviteUsers(filerData);
   }
   else{
-    setInviteUsers([...inviteuser,params]);
+    setInviteUsers([...inviteuser,params?.email]);
   }
-
-
-    
-
 }
-
-const edit_Meeting_Data=async(id)=>{
+const edit_Meeting_Data=async(paramsid)=>{
   try {
-    const {data}=await Get_Zoom_services(id);
+    const {data}=await get_Zoom_services_single(paramsid);
     if(data)
     {
-      setMeeting(data[0]);
-      setSelectAll(data[0]?.selectAllStatus);
-      setInviteUsers(data[0]?.invitedUsers)
-      setStatusChange(data[0]?.status)
+
+      setMeeting(data);
+      setSelectAll(data?.selectAllStatus);
+      setInviteUsers(data?.invitedUsers)
+      setStatusChange(data?.status)
       handleShow();
-      history(`/create-meeting?id=${data[0]?._id}`)
+      history(`/create-meeting?id=${paramsid}`)
     }
     
   } catch (error) {
@@ -162,26 +192,28 @@ const edit_Meeting_Data=async(id)=>{
 }
 
 
+
+
 useEffect(()=>{
-if(selectAll)
-{
-  setInviteUsers(mailIds);
-}
-if(inviteuser?.length===mailIds?.length)
+
+  if(allusers?.length==inviteuser?.length)
   {
-    setInviteUsers(mailIds);
-    setSelectAll(true);
+    const ids=[]
+    allusers?.map((item,index)=>{
+      ids.push(item?.email);
+    })
+    setInviteUsers(ids);
   }
   else{
-    setSelectAll(false);
+    setInviteUsers([]);
 
   }
-},[selectAll])
+},[]);
 
 
 useEffect(()=>{
 
-},[inviteuser]);
+},[inviteuser])
 
 const handleStatusChange=async(e)=>{
   setStatusChange((pre)=>!pre);
@@ -200,13 +232,49 @@ try {
   
 }
 }
+
+const sendMail=async(paramsid)=>{
+  try {
+    const {data}=await send_Zoom_status_services(paramsid)
+   if(data)
+   {
+    ToastSuccess("Mail Sended Suucessfully")
+   }
+  } catch (error) {
+   
+  }
+}
+
+
+const FechData=async()=>{
+  try {
+      
+      const {data}=await GetZoom_services_user();
+
+      if(data)
+      {
+          setAllusers(data);
+      }
+  } catch (error) {
+      console.log(error)
+  }
+}
+
+useEffect(()=>{
+  FechData();
+},[])
+
+const createUsers=()=>{
+  history("/create-users")
+}
   return (
     <div>
       <section>
         <Header/>
       </section>
          <div className='table-section'>
-           <div className='mb-5 mt-3 flex-end text-end'>
+           <div className='mb-5 mt-3 justify-content-end text-end gap-4 d-flex'>
+           <button className='submit-btn' onClick={createUsers}>+ Add New User</button>
                 <button className='submit-btn' onClick={handleShow}>+ Create Meeting</button>
             </div>
          <Table striped bordered hover>
@@ -214,15 +282,15 @@ try {
         <tr>
           <th>S.No</th>
           <th>Meeting Name</th>
-          <th>Day</th>
+          {/* <th>Day</th> */}
           <th>Meeting Date</th>
           <th>Users</th>
-          <th>Status</th>
           <th>Duration</th>
           <th>Actions</th>
           <th>Meeting Cancel</th>
           <th>Send</th>
-          <th>Join</th>
+          <th>Status</th>
+
         </tr>
       </thead>
       <tbody>
@@ -232,10 +300,15 @@ try {
             <tr key={index}>
           <td>{index+1}</td>
           <td>{item?.name}</td>
-          <td>{moment(item?.MeetingDate).format('dddd')}</td>
+          {/* <td>{moment(item?.MeetingDate).format('dddd')}</td> */}
           <td>{moment(item?.MeetingDate).format('LLLL')}</td>
           <td>{item?.Users}</td>
-          <td>{item?.status?"Active":"InActive"}</td>
+
+          {/* <td>
+{moment(item?.MeetingDate).isSame(moment(), 'day') ? "Join Now" : (
+  moment(item?.MeetingDate).isBefore(moment(), 'day') ? "Ended" : "Upcoming"
+)}
+          </td> */}
           <td>{item?.Duration} Mins</td>
           <td><div className='d-flex gap-4'>
             <div onClick={()=>edit_Meeting_Data(item?._id)}><i className="fa-regular fa-pen-to-square"></i></div>
@@ -245,15 +318,23 @@ try {
 
             </div></td>
           <td>
-          <div className="checkbox-wrapper-7">
+          <div className="checkbox-wrapper-7 d-flex align-items-center justify-content-center">
   <input className="tgl tgl-ios" id="cb2-7" type="checkbox" onChange={()=>handleStatusChange(item?._id)} checked={item?.status?true:false}/>
   <label className="tgl-btn" for="cb2-7"/>
 </div>
           </td>
           <td>
-          <button className='cancel-btn'>Send</button>
+          <button className='cancel-btn' onClick={()=>sendMail(item?._id)}>Send</button>
           </td>
-          <td><button className='submit-btn' onClick={()=>JoinMeeting(item?.MeetingId,item?.name)}>Join</button></td>
+          <td>
+        <div className='d-flex align-items-center justify-content-center'>
+        {moment(item?.MeetingDate).isSame(moment(), 'day') ? <>
+            <button className='submit-btn' onClick={()=>JoinMeeting(item?.MeetingId,item?.name)}>Join</button>
+          </> : (
+  moment(item?.MeetingDate).isBefore(moment(), 'day') ? "Ended" : "Upcoming"
+)}
+        </div>
+          </td>
         </tr>
           )
         })}
@@ -329,23 +410,22 @@ try {
            name="Users"
            value={Users}
            onChange={handleChange}
+           disabled
         />
         <Form.Text className="text-muted">
         </Form.Text>
       </Form.Group>
               </Col>
             </Row>
-
             <Row>
-
               <div>
-                <input type="checkbox" onChange={handleChangeSelectall} checked={selectAll}/>
+                <input type="checkbox" onChange={handleChangeSelectall} checked={allusers?.length===inviteuser?.length?true:false}/>
                 <label>Select All</label>
               </div>
-              {mailIds?.map((item,index)=>{
+              {allusers?.map((item,index)=>{
                 return(
                   <div key={index} className='col-lg-3 d-flex gap-1' onClick={()=>handleInviter(item)} >
-                    {inviteuser?.includes(item)?<>
+                    {inviteuser?.includes(item?.email)?<>
                     <input type="checkbox" checked={true} id={index+1}/>
                     </>:<>
                     <input type="checkbox" id={index+1}/>
@@ -353,7 +433,7 @@ try {
                     </>}
                   
                   <div className='mt-1'>
-                  <label htmlFor={index+1}>{item}</label>
+                  <label htmlFor={index+1}>{item.email}</label>
                   </div>
 
                   </div>
