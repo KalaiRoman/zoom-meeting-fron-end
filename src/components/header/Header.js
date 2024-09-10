@@ -24,7 +24,7 @@ function Header() {
     }
   return (
     <div className='main-header'>
-        <div>
+        <div onClick={()=>window.location.assign("/")}>
 <img src={zoomlogo} alt="no image" className='logo'/>
         </div>
         <div>

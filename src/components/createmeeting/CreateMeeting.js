@@ -10,7 +10,10 @@ import moment from 'moment';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Header from '../header/Header';
 import { GetZoom_services_user } from '../../services/Zoom_meeting_user_services';
+import { useSelector } from 'react-redux';
 function CreateMeeting() {
+
+  const socket=useSelector((state)=>state?.socket?.socket);
   const [id,data]=useSearchParams();
   const history=useNavigate();
     const [show, setShow] = useState(false);
@@ -101,7 +104,8 @@ function CreateMeeting() {
                 Users:"",
                 MeetingDate:"",
               })
-              
+
+              console.log(data,"data")
               }
           }
       }
@@ -120,6 +124,8 @@ function CreateMeeting() {
 if(data)
 {
   setMeetings(data)
+  socket.emit("create-meeting",data)
+
 }
     } catch (error) {
       

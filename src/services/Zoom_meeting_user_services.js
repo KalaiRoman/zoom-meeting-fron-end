@@ -22,7 +22,7 @@ export const CreateZoom_services_user=async(data)=>{
 
 export const GetZoom_services_user=async()=>{
     try {
-        const response=await InstanceUrl.get("/zoom/meet/get");
+        const response=await InstanceUrl.get("/auth/zoom/users");
         if(response)
         {
             return{

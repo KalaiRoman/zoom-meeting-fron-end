@@ -265,7 +265,6 @@ export default function JoinMeeting() {
   const [chatMessages, setChatMessages] = useState([]);
   const containerRef = useRef(null);
   const zpRef = useRef(null); // Create a ref to store the ZegoUIKitPrebuilt instance
-
   useEffect(() => {
     const appID = 511307651;
     const serverSecret = process.env.REACT_APP_ZEGOCLOUD_SERVER_SECRET;

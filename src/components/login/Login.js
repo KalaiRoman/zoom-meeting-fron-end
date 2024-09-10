@@ -13,6 +13,9 @@ import PostMethod from "../../api/PostMethod";
 import { Login_services } from "../../services/Auth_services";
 const Login = memo(() => {
 
+  
+  const socket=useSelector((state)=>state?.socket?.socket)
+
   const PathName=localStorage.getItem("path_zoom_meeting");
   let history = useNavigate();
   const dispatch=useDispatch();
@@ -50,19 +53,16 @@ const Login = memo(() => {
       try {
         const {data,token}=await Login_services(datas);
         if (data || token) {
-          if(PathName)
-          {
-            dispatch(LoginUserAction(token));
-            ToastSuccess("User Login Successfully!!");
-            history(JSON.parse(PathName)); 
-          }
-          else{
+
+          console.log(token,'token')
+          localStorage.setItem("zoom_token",JSON.stringify(token))
             dispatch(LoginUserAction(token));
             ToastSuccess("User Login Successfully!!");
             history("/home"); 
-          }
-    
+
         }
+
+
       } catch (err) {
         ToastError("An error occurred during login.");
       } finally {
@@ -70,6 +70,18 @@ const Login = memo(() => {
       }
     }
   };
+
+
+  useEffect(()=>{
+
+    if(socket && typeof socket.on === 'function')
+    {
+      socket.on("user-login",(mes)=>{
+        ToastSuccess(mes);
+      })
+    }
+
+  },[])
 
 
   
