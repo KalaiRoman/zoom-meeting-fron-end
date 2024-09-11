@@ -126,3 +126,22 @@ export const confimr_Zoom_meeting_services=async(data)=>{
         }
     }
 }
+
+
+export const Delete_Meeting_services=async(id)=>{
+    try {
+        const response=await InstanceUrl.delete(`/zoom/meeting/delete/${id}`);
+        if(response)
+        {
+            return{
+                data:response?.data?.data,
+                error:"No Data Found"
+            }
+        }
+    } catch (error) {
+        return{
+            data:"",
+            error:error?.response?.data?.message
+        }
+    }
+}

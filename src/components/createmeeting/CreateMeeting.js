@@ -5,12 +5,13 @@ import Modal from 'react-bootstrap/Modal';
 import { Col, Row } from 'react-bootstrap';
 import Form from 'react-bootstrap/Form';
 import { ToastError, ToastSuccess } from '../../middleware/ToastModel';
-import { CreateZoom_services, edit_Zoom_services, edit_Zoom_status_services, Get_Zoom_services, send_Zoom_status_services,get_Zoom_services_single } from '../../services/Zoom_services';
+import { CreateZoom_services, edit_Zoom_services, edit_Zoom_status_services, Get_Zoom_services, send_Zoom_status_services,get_Zoom_services_single, Delete_Meeting_services } from '../../services/Zoom_services';
 import moment from 'moment';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Header from '../header/Header';
 import { GetZoom_services_user } from '../../services/Zoom_meeting_user_services';
 import { useSelector } from 'react-redux';
+import FloatingLabel from 'react-bootstrap/FloatingLabel';
 function CreateMeeting() {
 
   const socket=useSelector((state)=>state?.socket?.socket);
@@ -30,15 +31,15 @@ function CreateMeeting() {
   const [statusChange,setStatusChange]=useState(true)
   const [allusers,setAllusers]=useState([]);
 
-  console.log(inviteuser,'inviteuser')
 
   const [meeting,setMeeting]=useState({
     name:"",
     Duration:"",
     Users:"",
     MeetingDate:"",
+    des:""
   });
-  const {name,Duration,Users,MeetingDate}=meeting;
+  const {name,Duration,Users,MeetingDate,des}=meeting;
   const handleChange=(e)=>{
     setMeeting({...meeting,[e.target.name]:e.target.value});
   }
@@ -60,7 +61,8 @@ function CreateMeeting() {
                 Users,
                 MeetingDate,
                 invitedUsers:inviteuser,
-                selectAllStatus:selectAll
+                selectAllStatus:selectAll,
+                des
               }
               const {data,error}=await edit_Zoom_services(id?.get("id"),datas);
               if(data)
@@ -90,7 +92,8 @@ function CreateMeeting() {
                 Users,
                 MeetingDate,
                 invitedUsers:inviteuser,
-                selectAllStatus:selectAll
+                selectAllStatus:selectAll,
+                des
               }
               const {data,error}=await CreateZoom_services(datas);
               if(data)
@@ -105,7 +108,6 @@ function CreateMeeting() {
                 MeetingDate:"",
               })
 
-              console.log(data,"data")
               }
           }
       }
@@ -124,8 +126,7 @@ function CreateMeeting() {
 if(data)
 {
   setMeetings(data)
-  socket.emit("create-meeting",data)
-
+  socket.emit("create-meeting",data);
 }
     } catch (error) {
       
@@ -141,8 +142,8 @@ if(data)
     )
   },[selectAll,inviteuser])
 
-  const JoinMeeting=(params,name)=>{
-    history(`/confirm-meeting?roomID=${params}?roomName=${name}`)
+  const JoinMeeting=(params)=>{
+    history(`/join?roomID=${params}`)
   }
 const handleChangeSelectall=()=>{
   setSelectAll((pre)=>!pre);
@@ -273,6 +274,20 @@ useEffect(()=>{
 const createUsers=()=>{
   history("/create-users")
 }
+
+const deleteMeeting=async(paramsid)=>{
+try {
+  
+  const response=await Delete_Meeting_services(paramsid);
+
+  if(response)
+  {
+    GetMethod();
+  }
+} catch (error) {
+  
+}
+}
   return (
     <div>
       <section>
@@ -280,7 +295,7 @@ const createUsers=()=>{
       </section>
          <div className='table-section'>
            <div className='mb-5 mt-3 justify-content-end text-end gap-4 d-flex'>
-           <button className='submit-btn' onClick={createUsers}>+ Add New User</button>
+           {/* <button className='submit-btn' onClick={createUsers}>+ Add New User</button> */}
                 <button className='submit-btn' onClick={handleShow}>+ Create Meeting</button>
             </div>
          <Table striped bordered hover>
@@ -292,10 +307,10 @@ const createUsers=()=>{
           <th>Meeting Date</th>
           <th>Users</th>
           <th>Duration</th>
-          <th>Actions</th>
           <th>Meeting Cancel</th>
           <th>Send</th>
           <th>Status</th>
+          <th>Actions</th>
 
         </tr>
       </thead>
@@ -306,23 +321,12 @@ const createUsers=()=>{
             <tr key={index}>
           <td>{index+1}</td>
           <td>{item?.name}</td>
-          {/* <td>{moment(item?.MeetingDate).format('dddd')}</td> */}
           <td>{moment(item?.MeetingDate).format('LLLL')}</td>
           <td>{item?.Users}</td>
 
-          {/* <td>
-{moment(item?.MeetingDate).isSame(moment(), 'day') ? "Join Now" : (
-  moment(item?.MeetingDate).isBefore(moment(), 'day') ? "Ended" : "Upcoming"
-)}
-          </td> */}
+         
           <td>{item?.Duration} Mins</td>
-          <td><div className='d-flex gap-4'>
-            <div onClick={()=>edit_Meeting_Data(item?._id)}><i className="fa-regular fa-pen-to-square"></i></div>
-            <div>
-            <i className="fa-solid fa-trash"></i>
-            </div>
-
-            </div></td>
+       
           <td>
           <div className="checkbox-wrapper-7 d-flex align-items-center justify-content-center">
   <input className="tgl tgl-ios" id="cb2-7" type="checkbox" onChange={()=>handleStatusChange(item?._id)} checked={item?.status?true:false}/>
@@ -330,17 +334,44 @@ const createUsers=()=>{
 </div>
           </td>
           <td>
-          <button className='cancel-btn' onClick={()=>sendMail(item?._id)}>Send</button>
+
+            {item?.publishStatus?<>
+          <button className='cancel-btn'>Published</button>
+            
+            </>:<>
+            <button className='cancel-btn' onClick={()=>sendMail(item?._id)}>Publish</button>
+
+            
+            </>}
           </td>
           <td>
         <div className='d-flex align-items-center justify-content-center'>
-        {moment(item?.MeetingDate).isSame(moment(), 'day') ? <>
-            <button className='submit-btn' onClick={()=>JoinMeeting(item?.MeetingId,item?.name)}>Join</button>
-          </> : (
-  moment(item?.MeetingDate).isBefore(moment(), 'day') ? "Ended" : "Upcoming"
+        {!item?.status?<>
+        
+
+<button className='submit-btn'>Canceled</button>
+
+        </>:<>
+          {moment(item?.MeetingDate).isSame(moment(), 'day') ? <>
+
+<button className='submit-btn' onClick={()=>JoinMeeting(item?.MeetingId)}>Join</button>
+</> : (
+moment(item?.MeetingDate).isBefore(moment(), 'day') ? "Ended" : "Upcoming"
 )}
+        </>}
+          
+        
         </div>
           </td>
+
+
+          <td><div className='d-flex gap-4'>
+            <div onClick={()=>edit_Meeting_Data(item?._id)}><i className="fa-regular fa-pen-to-square"></i></div>
+            <div onClick={()=>deleteMeeting(item?._id)}>
+            <i className="fa-solid fa-trash"></i>
+            </div>
+
+            </div></td>
         </tr>
           )
         })}
@@ -423,6 +454,26 @@ const createUsers=()=>{
       </Form.Group>
               </Col>
             </Row>
+
+            <div className='mb-4 m-2'>
+            <Form.Label>Descriptions</Form.Label>
+
+            <Row>
+              <Col>
+              
+<FloatingLabel controlId="floatingTextarea2" label="Please Enter Descriptions">
+        <Form.Control
+          as="textarea"
+          name="des"
+           value={des}
+           onChange={handleChange}
+          placeholder="Leave a comment here"
+          style={{ height: '100px' }}
+        />
+      </FloatingLabel>
+              </Col>
+            </Row>
+            </div>
             <Row>
               <div>
                 <input type="checkbox" onChange={handleChangeSelectall} checked={allusers?.length===inviteuser?.length?true:false}/>
